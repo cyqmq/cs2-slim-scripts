@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="CS2 精简专用服务端一键安装指令生成器：选择环境变量，自动生成 Linux (curl | bash) 与 Windows (irm | iex) 安装命令。">
+<title>CS2 Slim 一键安装指令生成器</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+<style>
+  :root {
+    --bg: #0b0f14;
+    --card: #131b24;
+    --card-2: #182230;
+    --border: #253141;
+    --border-strong: #36454f;
+    --text: #e6edf3;
+    --muted: #8b9bb4;
+    --accent: #f0a030;
+    --accent-soft: rgba(240, 160, 48, 0.12);
+    --green: #3fb950;
+    --green-soft: rgba(63, 185, 80, 0.12);
+    --code-bg: #0c1116;
+    --radius: 12px;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(1100px 520px at 85% -10%, rgba(240, 160, 48, 0.09), transparent 60%),
+      radial-gradient(900px 480px at -5% 0%, rgba(63, 185, 80, 0.06), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 36px 20px 72px; }
+
+  /* Header */
+  header { text-align: center; margin-bottom: 30px; }
+  header .logo { font-size: 40px; line-height: 1; }
+  header h1 { font-size: 30px; margin: 10px 0 6px; letter-spacing: .5px; }
+  header h1 .accent { color: var(--accent); }
+  header p { color: var(--muted); margin: 0 0 14px; font-size: 15px; }
+  .links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 14px;
+    margin: 0 4px;
+    transition: .2s;
+    background: rgba(255,255,255,0.02);
+  }
+  .links a:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  /* Layout */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+
+  /* Cards */
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0)) , var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 18px;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .card-title .muted { font-weight: 400; font-size: 12px; }
+  .muted { color: var(--muted); font-size: 12.5px; }
+  .tag {
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(240,160,48,.35);
+    border-radius: 999px;
+    padding: 0 7px;
+    margin-left: 4px;
+  }
+
+  /* Segmented mode selector */
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .seg label {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: .18s;
+    background: rgba(255,255,255,0.015);
+  }
+  .seg label:hover { border-color: var(--border-strong); }
+  .seg label:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 1px var(--accent) inset;
+  }
+  .seg input { margin-top: 3px; accent-color: var(--accent); }
+  .seg b { display: block; font-size: 14px; font-family: var(--font-mono); }
+  .seg span { font-size: 12px; color: var(--muted); }
+
+  /* Checkbox grid */
+  .cb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px 10px; margin-bottom: 10px; }
+  .cb-grid label {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 5px 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .cb-grid label:hover { background: rgba(255,255,255,0.04); border-color: var(--border); }
+  .cb-grid input { accent-color: var(--accent); margin: 0; }
+
+  .quick { display: flex; gap: 6px; margin-left: auto; }
+  .quick button, .btn-reset {
+    font-size: 12px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 10px;
+    cursor: pointer;
+    transition: .15s;
+    font-family: inherit;
+  }
+  .quick button:hover, .btn-reset:hover { color: var(--text); border-color: var(--border-strong); }
+
+  /* Inputs */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 6px; }
+  .field label .muted { font-weight: 400; margin-left: 6px; }
+  input[type="text"] {
+    width: 100%;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    font-family: var(--font-mono);
+    outline: none;
+    transition: .15s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(240,160,48,.15); }
+  input[type="text"]::placeholder { color: #4c5a6d; }
+
+  .checks { display: grid; gap: 8px; margin-top: 4px; }
+  .checks label {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 13.5px;
+    cursor: pointer;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.015);
+    transition: .15s;
+  }
+  .checks label:hover { border-color: var(--border-strong); }
+  .checks input { accent-color: var(--accent); margin: 0; }
+  .checks label:has(input:disabled) { opacity: .45; cursor: not-allowed; }
+  .checks code { font-family: var(--font-mono); font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 6px; }
+
+  .card-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+
+  /* Output */
+  .sticky-wrap { position: sticky; top: 20px; }
+  @media (max-width: 920px) { .sticky-wrap { position: static; } }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #ffd9a3;
+    background: rgba(240,160,48,0.1);
+    border: 1px solid rgba(240,160,48,.4);
+    border-radius: 999px;
+    padding: 3px 11px;
+  }
+  .chip.empty {
+    color: var(--muted);
+    background: rgba(139,155,180,0.06);
+    border-color: var(--border);
+    font-family: inherit;
+  }
+  .defaults-note { color: var(--muted); font-size: 12px; margin: -6px 0 12px; }
+  .defaults-note code { font-family: var(--font-mono); color: #9fb0c9; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 0 5px; }
+
+  .cmd {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    background: var(--code-bg);
+  }
+  .cmd-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .cmd-head span { display: flex; align-items: center; gap: 7px; }
+  .cmd-head .os-icon { font-size: 15px; }
+  .copy-btn {
+    font-size: 12px;
+    color: var(--text);
+    background: var(--card-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    padding: 4px 13px;
+    cursor: pointer;
+    transition: .15s;
+    font-family: inherit;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+  pre {
+    margin: 0;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    color: #d7e0ea;
+    white-space: pre;
+    min-height: 54px;
+  }
+  pre .env { color: #79c0ff; }
+  pre .assign { color: #ff7b72; }
+  pre .val { color: #a5d6ff; }
+  pre .pipe { color: #8b9bb4; }
+  pre .url { color: #7ee787; }
+
+  .note {
+    color: var(--muted);
+    font-size: 12.5px;
+    background: rgba(255,255,255,0.02);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    margin: 4px 0 0;
+  }
+  .note code { font-family: var(--font-mono); color: #9fb0c9; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12.5px;
+    margin-top: 30px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--green);
+    color: #04140a;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 20px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: .25s;
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+    z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">🎮</div>
+    <h1>CS2 <span class="accent">Slim</span> 一键安装指令生成器</h1>
+    <p>选择变量，自动生成 Linux / Windows 一键安装命令 · 基于 <b>cs2-slim-replica</b></p>
+    <div class="links">
+      <a href="https://github.com/cyqmq/cs2-slim-replica" target="_blank" rel="noopener">主仓库</a>
+      <a href="https://github.com/cyqmq/cs2-slim-maps" target="_blank" rel="noopener">选配地图</a>
+      <a href="https://github.com/cyqmq/cs2-slim-features" target="_blank" rel="noopener">选配功能</a>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- 配置区 -->
+    <div>
+      <section class="card">
+        <div class="card-title">安装模式 <span class="muted">CS2_MODE · 默认 source</span></div>
+        <div class="seg">
+          <label>
+            <input type="radio" name="mode" value="source" checked>
+            <div><b>source</b><span>源码构建（默认）· 首次约 1.5GB 下载</span></div>
+          </label>
+          <label>
+            <input type="radio" name="mode" value="prebuilt">
+            <div><b>prebuilt</b><span>预构建模式 · 直接拉 Release 包，更快</span></div>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">
+          地图 <span class="muted">CS2_MAPS · 默认 de_dust2</span>
+          <div class="quick">
+            <button type="button" id="mapsAll">全选</button>
+            <button type="button" id="mapsNone">清空</button>
+          </div>
+        </div>
+        <div class="cb-grid" id="mapsGrid">
+          <label><input type="checkbox" class="map-cb" data-map="de_dust2" checked> de_dust2 <span class="tag">核心</span></label>
+          <label><input type="checkbox" class="map-cb" data-map="de_mirage"> de_mirage</label>
+          <label><input type="checkbox" class="map-cb" data-map="de_inferno"> de_inferno</label>
+          <label><input type="checkbox" class="map-cb" data-map="de_ancient"> de_ancient</label>
+          <label><input type="checkbox" class="map-cb" data-map="de_anubis"> de_anubis</label>
+          <label><input type="checkbox" class="map-cb" data-map="de_cache"> de_cache</label>
+          <label><input type="checkbox" class="map-cb" data-map="de_nuke"> de_nuke</label>
+          <label><input type="checkbox" class="map-cb" data-map="de_overpass"> de_overpass</label>
+          <label><input type="checkbox" class="map-cb" data-map="de_train"> de_train</label>
+          <label><input type="checkbox" class="map-cb" data-map="de_vertigo"> de_vertigo</label>
+        </div>
+        <input type="text" id="customMaps" placeholder="自定义地图，逗号分隔，如 de_mirage,de_inferno" autocomplete="off">
+      </section>
+
+      <section class="card">
+        <div class="card-title">功能 <span class="muted">CS2_FEATURES · 默认不启用</span></div>
+        <div class="checks" style="margin-bottom:10px;">
+          <label>
+            <input type="checkbox" id="featBots" data-feature="bots">
+            <span><b>bots</b> &nbsp;人机功能包（bot_add 人机玩法 + 离线练习配置）</span>
+          </label>
+        </div>
+        <input type="text" id="customFeatures" placeholder="自定义功能，逗号分隔，如 bots" autocomplete="off">
+      </section>
+
+      <section class="card">
+        <div class="card-title">高级选项</div>
+        <div class="field">
+          <label>工作目录 <code>CS2_WORKDIR</code><span class="muted">默认 ~/cs2-slim-build</span></label>
+          <input type="text" id="workdir" placeholder="~/cs2-slim-build" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>GitHub 加速代理 <code>CS2_GH_PROXY</code><span class="muted">国内网络受限时填写</span></label>
+          <input type="text" id="proxy" list="proxyList" placeholder="https://ghproxy.com" autocomplete="off">
+          <datalist id="proxyList">
+            <option value="https://ghproxy.com">
+            <option value="https://ghproxy.net">
+            <option value="https://gh-proxy.com">
+            <option value="https://mirror.ghproxy.com">
+          </datalist>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="pkg"> <span><code>CS2_PACKAGE</code> 完成后打包（仅 source 模式）</span></label>
+          <label><input type="checkbox" id="dry"> <span><code>CS2_DRY_RUN</code> 只生成配置不下载（预览）</span></label>
+          <label><input type="checkbox" id="panel"> <span><code>CS2_PANEL</code> 面板模式：生成 / 覆盖 $HOME/start.sh</span></label>
+        </div>
+      </section>
+
+      <div class="card-foot">
+        <button class="btn-reset" id="reset" type="button">↺ 恢复默认</button>
+      </div>
+    </div>
+
+    <!-- 输出区 -->
+    <div class="sticky-wrap">
+      <section class="card">
+        <div class="card-title">生成的一键安装指令</div>
+
+        <div class="chips" id="chips"></div>
+        <div class="defaults-note" id="defaultsNote"></div>
+
+        <div class="cmd">
+          <div class="cmd-head">
+            <span><span class="os-icon">🐧</span> Linux · curl | bash</span>
+            <button class="copy-btn" id="copyLinux" type="button">复制</button>
+          </div>
+          <pre id="linuxCmd" aria-label="Linux 安装命令"></pre>
+        </div>
+
+        <div class="cmd">
+          <div class="cmd-head">
+            <span><span class="os-icon">🪟</span> Windows · irm | iex</span>
+            <button class="copy-btn" id="copyWindows" type="button">复制</button>
+          </div>
+          <pre id="windowsCmd" aria-label="Windows 安装命令"></pre>
+        </div>
+
+        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。</p>
+      </section>
+    </div>
+
+  </div>
+
+  <footer>
+    数据与脚本来自 <a href="https://github.com/cyqmq/cs2-slim-replica" target="_blank" rel="noopener">cyqmq/cs2-slim-replica</a> ·
+    选配组件 <a href="https://github.com/cyqmq/cs2-slim-maps" target="_blank" rel="noopener">maps</a> / <a href="https://github.com/cyqmq/cs2-slim-features" target="_blank" rel="noopener">features</a>
+  </footer>
+</div>
+
+<div class="toast" id="toast">已复制到剪贴板 ✓</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var SCRIPT_SH  = 'https://raw.githubusercontent.com/cyqmq/cs2-slim-replica/main/scripts/get-cs2slim.sh';
+  var SCRIPT_PS1 = 'https://raw.githubusercontent.com/cyqmq/cs2-slim-replica/main/scripts/get-cs2slim.ps1';
+  var DEFAULT_WORKDIR = '~/cs2-slim-build';
+  var MAPS = ['de_dust2','de_mirage','de_inferno','de_ancient','de_anubis','de_cache','de_nuke','de_overpass','de_train','de_vertigo'];
+  var FEATURES = ['bots'];
+
+  var state = {
+    mode: 'source',
+    maps: ['de_dust2'],
+    features: [],
+    customMaps: '',
+    customFeatures: '',
+    workdir: '',
+    pkg: false,
+    dryRun: false,
+    panel: false,
+    proxy: ''
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    linux: $('linuxCmd'),
+    windows: $('windowsCmd'),
+    chips: $('chips'),
+    defaultsNote: $('defaultsNote'),
+    workdir: $('workdir'),
+    proxy: $('proxy'),
+    pkg: $('pkg'),
+    dry: $('dry'),
+    panel: $('panel'),
+    featBots: $('featBots'),
+    customMaps: $('customMaps'),
+    customFeatures: $('customFeatures')
+  };
+
+  /* ---------- 状态读写 ---------- */
+  function loadState() {
+    try {
+      var h = location.hash.replace(/^#/, '');
+      if (!h) return;
+      var parsed = JSON.parse(decodeURIComponent(h));
+      if (parsed && typeof parsed === 'object') {
+        state.mode = parsed.mode === 'prebuilt' ? 'prebuilt' : 'source';
+        state.maps = Array.isArray(parsed.maps) ? parsed.maps.filter(function (m) { return MAPS.indexOf(m) !== -1; }) : ['de_dust2'];
+        state.features = Array.isArray(parsed.features) ? parsed.features.filter(function (f) { return FEATURES.indexOf(f) !== -1; }) : [];
+        state.customMaps = typeof parsed.customMaps === 'string' ? parsed.customMaps : '';
+        state.customFeatures = typeof parsed.customFeatures === 'string' ? parsed.customFeatures : '';
+        state.workdir = typeof parsed.workdir === 'string' ? parsed.workdir : '';
+        state.pkg = !!parsed.pkg;
+        state.dryRun = !!parsed.dryRun;
+        state.panel = !!parsed.panel;
+        state.proxy = typeof parsed.proxy === 'string' ? parsed.proxy : '';
+      }
+    } catch (e) { /* ignore bad hash */ }
+  }
+
+  function saveState() {
+    try {
+      var h = '#' + encodeURIComponent(JSON.stringify(state));
+      history.replaceState(null, '', h);
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ---------- 取值 ---------- */
+  function getMaps() {
+    var custom = els.customMaps.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    return unique(state.maps.concat(custom));
+  }
+  function getFeatures() {
+    var custom = els.customFeatures.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    return unique(state.features.concat(custom));
+  }
+  function unique(arr) {
+    var seen = {}, out = [];
+    arr.forEach(function (x) { if (!seen[x]) { seen[x] = true; out.push(x); } });
+    return out;
+  }
+
+  /* ---------- 环境变量收集 ---------- */
+  function collectEnvs() {
+    var envs = [];
+    if (state.mode === 'prebuilt') envs.push({ name: 'CS2_MODE', value: 'prebuilt' });
+
+    var maps = getMaps();
+    // 若地图恰好是默认的 de_dust2，则无需显式设置 CS2_MAPS
+    if (maps.length && !(maps.length === 1 && maps[0] === 'de_dust2')) {
+      envs.push({ name: 'CS2_MAPS', value: maps.join(',') });
+    }
+
+    var feats = getFeatures();
+    if (feats.length) envs.push({ name: 'CS2_FEATURES', value: feats.join(',') });
+
+    var wd = els.workdir.value.trim();
+    if (wd && wd !== DEFAULT_WORKDIR) envs.push({ name: 'CS2_WORKDIR', value: wd });
+
+    if (els.pkg.checked && state.mode === 'source') envs.push({ name: 'CS2_PACKAGE', value: '1' });
+    if (els.dry.checked) envs.push({ name: 'CS2_DRY_RUN', value: '1' });
+
+    var proxy = els.proxy.value.trim();
+    if (proxy) envs.push({ name: 'CS2_GH_PROXY', value: proxy });
+
+    if (els.panel.checked) envs.push({ name: 'CS2_PANEL', value: '1' });
+    return envs;
+  }
+
+  /* ---------- 命令生成 ---------- */
+  function buildLinux(envs) {
+    var curl = 'curl -fsSL ' + SCRIPT_SH + ' | bash';
+    if (!envs.length) return curl;
+    var exportLine = 'export ' + envs.map(function (e) { return e.name + '=' + e.value; }).join(' ');
+    return exportLine + '\n' + curl;
+  }
+
+  function buildWindows(envs) {
+    var irm = 'irm ' + SCRIPT_PS1 + ' | iex';
+    if (!envs.length) return irm;
+    var envLine = envs.map(function (e) { return "$env:" + e.name + "='" + e.value + "'"; }).join('; ');
+    return envLine + '\n' + irm;
+  }
+
+  /* ---------- 渲染 ---------- */
+  function highlightLinux(text) {
+    var lines = text.split('\n');
+    return lines.map(function (line) {
+      if (line.indexOf('export ') === 0) {
+        var rest = line.slice(7);
+        var parts = rest.split(' ');
+        var html = '<span class="env">export</span> ';
+        parts.forEach(function (p, i) {
+          if (!p) return;
+          var kv = p.split('=');
+          html += '<span class="env">' + kv[0] + '</span><span class="assign">=</span><span class="val">' + kv.slice(1).join('=') + '</span>';
+          if (i < parts.length - 1) html += ' ';
+        });
+        return html;
+      }
+      return line.replace('| bash', '<span class="pipe">| bash</span>')
+                 .replace(SCRIPT_SH, '<span class="url">' + SCRIPT_SH + '</span>');
+    }).join('\n');
+  }
+
+  function highlightWindows(text) {
+    var lines = text.split('\n');
+    return lines.map(function (line) {
+      if (line.indexOf('$env:') === 0) {
+        var parts = line.split('; ');
+        var html = parts.map(function (seg) {
+          var m = seg.match(/^(\$env:[A-Z_]+)='(.*)'$/);
+          if (m) return '<span class="env">' + m[1] + '</span><span class="assign">=</span><span class="val">\'' + m[2] + '\'</span>';
+          return seg;
+        }).join('<span class="pipe">; </span>');
+        return html;
+      }
+      return line.replace('| iex', '<span class="pipe">| iex</span>')
+                 .replace(SCRIPT_PS1, '<span class="url">' + SCRIPT_PS1 + '</span>');
+    }).join('\n');
+  }
+
+  function render() {
+    // package 复选框：仅 source 模式可用
+    if (state.mode !== 'source') {
+      state.pkg = false;
+      els.pkg.checked = false;
+      els.pkg.disabled = true;
+    } else {
+      els.pkg.disabled = false;
+    }
+
+    // 同步地图 / 功能复选框的视觉状态（供「全选/清空」等操作使用）
+    document.querySelectorAll('.map-cb').forEach(function (cb) {
+      cb.checked = state.maps.indexOf(cb.dataset.map) !== -1;
+    });
+    els.featBots.checked = state.features.indexOf('bots') !== -1;
+
+    var envs = collectEnvs();
+
+    // chips
+    els.chips.innerHTML = '';
+    if (envs.length) {
+      envs.forEach(function (e) {
+        var span = document.createElement('span');
+        span.className = 'chip';
+        span.textContent = e.name + '=' + e.value;
+        els.chips.appendChild(span);
+      });
+    } else {
+      var empty = document.createElement('span');
+      empty.className = 'chip empty';
+      empty.textContent = '未设置额外变量（全部使用默认值）';
+      els.chips.appendChild(empty);
+    }
+
+    // 默认值提示
+    var defaults = [];
+    var mapsNow = getMaps();
+    if (state.mode !== 'prebuilt') defaults.push('CS2_MODE=source');
+    if (!mapsNow.length || (mapsNow.length === 1 && mapsNow[0] === 'de_dust2')) defaults.push('CS2_MAPS=de_dust2');
+    if (!els.workdir.value.trim()) defaults.push('CS2_WORKDIR=~/cs2-slim-build');
+    if (defaults.length) {
+      els.defaultsNote.innerHTML = '未设置的变量使用默认值：' + defaults.map(function (d) { return '<code>' + d + '</code>'; }).join(' ');
+    } else {
+      els.defaultsNote.innerHTML = '';
+    }
+
+    // 命令
+    var linuxText = buildLinux(envs);
+    var winText = buildWindows(envs);
+    els.linux.innerHTML = highlightLinux(linuxText);
+    els.windows.innerHTML = highlightWindows(winText);
+
+    saveState();
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  function bindRadios() {
+    document.querySelectorAll('input[name="mode"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        if (r.checked) state.mode = r.value;
+        render();
+      });
+    });
+  }
+
+  function bindMaps() {
+    document.querySelectorAll('.map-cb').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var m = cb.dataset.map;
+        if (cb.checked) {
+          if (state.maps.indexOf(m) === -1) state.maps.push(m);
+        } else {
+          state.maps = state.maps.filter(function (x) { return x !== m; });
+        }
+        render();
+      });
+    });
+    $('mapsAll').addEventListener('click', function () {
+      state.maps = MAPS.slice();
+      render();
+    });
+    $('mapsNone').addEventListener('click', function () {
+      state.maps = [];
+      render();
+    });
+  }
+
+  function bindFeatures() {
+    els.featBots.addEventListener('change', function () {
+      if (els.featBots.checked) {
+        if (state.features.indexOf('bots') === -1) state.features.push('bots');
+      } else {
+        state.features = state.features.filter(function (x) { return x !== 'bots'; });
+      }
+      render();
+    });
+  }
+
+  function bindTextInputs() {
+    var inputs = [els.customMaps, els.customFeatures, els.workdir, els.proxy];
+    inputs.forEach(function (el) {
+      el.addEventListener('input', render);
+    });
+  }
+
+  function bindChecks() {
+    [els.pkg, els.dry, els.panel].forEach(function (cb) {
+      cb.addEventListener('change', render);
+    });
+  }
+
+  function syncStateToDom() {
+    document.querySelectorAll('input[name="mode"]').forEach(function (r) {
+      r.checked = (r.value === state.mode);
+    });
+    document.querySelectorAll('.map-cb').forEach(function (cb) {
+      cb.checked = state.maps.indexOf(cb.dataset.map) !== -1;
+    });
+    els.featBots.checked = state.features.indexOf('bots') !== -1;
+    els.customMaps.value = state.customMaps;
+    els.customFeatures.value = state.customFeatures;
+    els.workdir.value = state.workdir;
+    els.proxy.value = state.proxy;
+    els.pkg.checked = state.pkg;
+    els.dry.checked = state.dryRun;
+    els.panel.checked = state.panel;
+  }
+
+  /* ---------- 复制 ---------- */
+  function copyText(text, btn) {
+    function done() {
+      btn.classList.add('copied');
+      var original = btn.textContent;
+      btn.textContent = '已复制 ✓';
+      setTimeout(function () {
+        btn.classList.remove('copied');
+        btn.textContent = original;
+      }, 1600);
+      var toast = $('toast');
+      toast.classList.add('show');
+      setTimeout(function () { toast.classList.remove('show'); }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ }
+    document.body.removeChild(ta);
+  }
+
+  $('copyLinux').addEventListener('click', function () {
+    copyText(els.linux.textContent, this);
+  });
+  $('copyWindows').addEventListener('click', function () {
+    copyText(els.windows.textContent, this);
+  });
+
+  /* ---------- 重置 ---------- */
+  $('reset').addEventListener('click', function () {
+    state = {
+      mode: 'source',
+      maps: ['de_dust2'],
+      features: [],
+      customMaps: '',
+      customFeatures: '',
+      workdir: '',
+      pkg: false,
+      dryRun: false,
+      panel: false,
+      proxy: ''
+    };
+    syncStateToDom();
+    render();
+  });
+
+  /* ---------- 启动 ---------- */
+  loadState();
+  syncStateToDom();
+  bindRadios();
+  bindMaps();
+  bindFeatures();
+  bindTextInputs();
+  bindChecks();
+  render();
+})();
+</script>
+</body>
+</html>
