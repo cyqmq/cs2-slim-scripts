@@ -176,6 +176,17 @@
   .checks input { accent-color: var(--accent); margin: 0; }
   .checks label:has(input:disabled) { opacity: .45; cursor: not-allowed; }
   .checks code { font-family: var(--font-mono); font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 6px; }
+  .plat {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 2px;
+    background: transparent;
+  }
+  .plat.both { color: #9fb0c9; background: rgba(139,155,180,.1); border: 1px solid var(--border); }
+  .plat.linux { color: #7ee787; background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.4); }
+  .plat.windows { color: #79c0ff; background: rgba(56,139,253,.12); border: 1px solid rgba(56,139,253,.4); }
 
   .card-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
 
@@ -199,6 +210,9 @@
     border-color: var(--border);
     font-family: inherit;
   }
+  .chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .chip-row + .chip-row { margin-top: 8px; }
+  .chip-label { font-size: 12px; font-weight: 600; margin-right: 2px; }
   .defaults-note { color: var(--muted); font-size: 12px; margin: -6px 0 12px; }
   .defaults-note code { font-family: var(--font-mono); color: #9fb0c9; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 0 5px; }
 
@@ -350,11 +364,27 @@
         <div class="card-title">功能 <span class="muted">CS2_FEATURES · 默认不启用</span></div>
         <div class="checks" style="margin-bottom:10px;">
           <label>
-            <input type="checkbox" id="featBots" data-feature="bots">
-            <span><b>bots</b> &nbsp;人机功能包（bot_add 人机玩法 + 离线练习配置）</span>
+            <input type="checkbox" class="feat-cb" data-feature="bots">
+            <span><b>bots</b> <code class="plat both">通用</code> &nbsp;人机功能包（bot_add 人机玩法 + 离线练习配置）</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="metamod">
+            <span><b>metamod</b> <code class="plat linux">Linux</code> &nbsp;Metamod:Source 插件框架</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="metamod-win">
+            <span><b>metamod-win</b> <code class="plat windows">Windows</code> &nbsp;Metamod:Source 插件框架</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="css">
+            <span><b>css</b> <code class="plat linux">Linux</code> &nbsp;CounterStrikeSharp C# 插件框架（自动带上 metamod）</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="css-win">
+            <span><b>css-win</b> <code class="plat windows">Windows</code> &nbsp;CounterStrikeSharp C# 插件框架（自动带上 metamod-win）</span>
           </label>
         </div>
-        <input type="text" id="customFeatures" placeholder="自定义功能，逗号分隔，如 bots" autocomplete="off">
+        <input type="text" id="customFeatures" placeholder="自定义功能，逗号分隔；已知项按平台路由，未知项同时应用到两个平台" autocomplete="off">
       </section>
 
       <section class="card">
@@ -409,7 +439,7 @@
           <pre id="windowsCmd" aria-label="Windows 安装命令"></pre>
         </div>
 
-        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。</p>
+        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> 会自动带上 <code>metamod-win</code>。</p>
       </section>
     </div>
 
@@ -431,7 +461,14 @@
   var SCRIPT_PS1 = 'https://raw.githubusercontent.com/cyqmq/cs2-slim-replica/main/scripts/get-cs2slim.ps1';
   var DEFAULT_WORKDIR = '~/cs2-slim-build';
   var MAPS = ['de_dust2','de_mirage','de_inferno','de_ancient','de_anubis','de_cache','de_nuke','de_overpass','de_train','de_vertigo'];
-  var FEATURES = ['bots'];
+  var FEATURES = {
+    bots:         { platform: 'both',    depends: [] },
+    metamod:      { platform: 'linux',   depends: [] },
+    'metamod-win':{ platform: 'windows', depends: [] },
+    css:          { platform: 'linux',   depends: ['metamod'] },
+    'css-win':    { platform: 'windows', depends: ['metamod-win'] }
+  };
+  var FEATURE_ORDER = ['bots', 'metamod', 'metamod-win', 'css', 'css-win'];
 
   var state = {
     mode: 'source',
@@ -457,7 +494,6 @@
     pkg: $('pkg'),
     dry: $('dry'),
     panel: $('panel'),
-    featBots: $('featBots'),
     customMaps: $('customMaps'),
     customFeatures: $('customFeatures')
   };
@@ -471,7 +507,7 @@
       if (parsed && typeof parsed === 'object') {
         state.mode = parsed.mode === 'prebuilt' ? 'prebuilt' : 'source';
         state.maps = Array.isArray(parsed.maps) ? parsed.maps.filter(function (m) { return MAPS.indexOf(m) !== -1; }) : ['de_dust2'];
-        state.features = Array.isArray(parsed.features) ? parsed.features.filter(function (f) { return FEATURES.indexOf(f) !== -1; }) : [];
+        state.features = Array.isArray(parsed.features) ? parsed.features.filter(function (f) { return Object.prototype.hasOwnProperty.call(FEATURES, f); }) : [];
         state.customMaps = typeof parsed.customMaps === 'string' ? parsed.customMaps : '';
         state.customFeatures = typeof parsed.customFeatures === 'string' ? parsed.customFeatures : '';
         state.workdir = typeof parsed.workdir === 'string' ? parsed.workdir : '';
@@ -495,9 +531,35 @@
     var custom = els.customMaps.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
     return unique(state.maps.concat(custom));
   }
-  function getFeatures() {
-    var custom = els.customFeatures.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-    return unique(state.features.concat(custom));
+  function getFeaturesForPlatform(platform) {
+    var result = state.features.slice();
+
+    // 自定义功能：已知项按平台路由，未知项视为通用
+    els.customFeatures.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (tok) {
+      if (result.indexOf(tok) === -1) result.push(tok);
+    });
+
+    // 自动补依赖（css -> metamod，css-win -> metamod-win）
+    result.slice().forEach(function (id) {
+      var f = FEATURES[id];
+      if (f) f.depends.forEach(function (d) {
+        if (result.indexOf(d) === -1) result.push(d);
+      });
+    });
+
+    // 按平台过滤：仅保留通用 + 当前平台的功能
+    result = result.filter(function (id) {
+      var f = FEATURES[id];
+      if (!f) return true; // 未知自定义功能 -> 两个平台都出现
+      return f.platform === 'both' || f.platform === platform;
+    });
+
+    // 按规范顺序排序（未知自定义功能排在最后）
+    return unique(result).sort(function (a, b) {
+      var ia = FEATURE_ORDER.indexOf(a); if (ia === -1) ia = 99;
+      var ib = FEATURE_ORDER.indexOf(b); if (ib === -1) ib = 99;
+      return ia - ib;
+    });
   }
   function unique(arr) {
     var seen = {}, out = [];
@@ -506,7 +568,7 @@
   }
 
   /* ---------- 环境变量收集 ---------- */
-  function collectEnvs() {
+  function collectEnvs(platform) {
     var envs = [];
     if (state.mode === 'prebuilt') envs.push({ name: 'CS2_MODE', value: 'prebuilt' });
 
@@ -516,7 +578,7 @@
       envs.push({ name: 'CS2_MAPS', value: maps.join(',') });
     }
 
-    var feats = getFeatures();
+    var feats = getFeaturesForPlatform(platform);
     if (feats.length) envs.push({ name: 'CS2_FEATURES', value: feats.join(',') });
 
     var wd = els.workdir.value.trim();
@@ -599,24 +661,21 @@
     document.querySelectorAll('.map-cb').forEach(function (cb) {
       cb.checked = state.maps.indexOf(cb.dataset.map) !== -1;
     });
-    els.featBots.checked = state.features.indexOf('bots') !== -1;
+    document.querySelectorAll('.feat-cb').forEach(function (cb) {
+      cb.checked = state.features.indexOf(cb.dataset.feature) !== -1;
+    });
 
-    var envs = collectEnvs();
+    var envsLinux = collectEnvs('linux');
+    var envsWindows = collectEnvs('windows');
+    var sameEnvs = JSON.stringify(envsLinux) === JSON.stringify(envsWindows);
 
     // chips
     els.chips.innerHTML = '';
-    if (envs.length) {
-      envs.forEach(function (e) {
-        var span = document.createElement('span');
-        span.className = 'chip';
-        span.textContent = e.name + '=' + e.value;
-        els.chips.appendChild(span);
-      });
+    if (sameEnvs) {
+      addChipRow(envsLinux, '');
     } else {
-      var empty = document.createElement('span');
-      empty.className = 'chip empty';
-      empty.textContent = '未设置额外变量（全部使用默认值）';
-      els.chips.appendChild(empty);
+      addChipRow(envsLinux, '🐧 Linux');
+      addChipRow(envsWindows, '🪟 Windows');
     }
 
     // 默认值提示
@@ -632,12 +691,37 @@
     }
 
     // 命令
-    var linuxText = buildLinux(envs);
-    var winText = buildWindows(envs);
+    var linuxText = buildLinux(envsLinux);
+    var winText = buildWindows(envsWindows);
     els.linux.innerHTML = highlightLinux(linuxText);
     els.windows.innerHTML = highlightWindows(winText);
 
     saveState();
+  }
+
+  function addChipRow(envs, label) {
+    var row = document.createElement('div');
+    row.className = 'chip-row';
+    if (label) {
+      var lab = document.createElement('span');
+      lab.className = 'chip-label';
+      lab.textContent = label;
+      row.appendChild(lab);
+    }
+    if (envs.length) {
+      envs.forEach(function (e) {
+        var span = document.createElement('span');
+        span.className = 'chip';
+        span.textContent = e.name + '=' + e.value;
+        row.appendChild(span);
+      });
+    } else {
+      var empty = document.createElement('span');
+      empty.className = 'chip empty';
+      empty.textContent = '默认（无额外变量）';
+      row.appendChild(empty);
+    }
+    els.chips.appendChild(row);
   }
 
   /* ---------- 事件绑定 ---------- */
@@ -673,13 +757,16 @@
   }
 
   function bindFeatures() {
-    els.featBots.addEventListener('change', function () {
-      if (els.featBots.checked) {
-        if (state.features.indexOf('bots') === -1) state.features.push('bots');
-      } else {
-        state.features = state.features.filter(function (x) { return x !== 'bots'; });
-      }
-      render();
+    document.querySelectorAll('.feat-cb').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var f = cb.dataset.feature;
+        if (cb.checked) {
+          if (state.features.indexOf(f) === -1) state.features.push(f);
+        } else {
+          state.features = state.features.filter(function (x) { return x !== f; });
+        }
+        render();
+      });
     });
   }
 
@@ -703,7 +790,9 @@
     document.querySelectorAll('.map-cb').forEach(function (cb) {
       cb.checked = state.maps.indexOf(cb.dataset.map) !== -1;
     });
-    els.featBots.checked = state.features.indexOf('bots') !== -1;
+    document.querySelectorAll('.feat-cb').forEach(function (cb) {
+      cb.checked = state.features.indexOf(cb.dataset.feature) !== -1;
+    });
     els.customMaps.value = state.customMaps;
     els.customFeatures.value = state.customFeatures;
     els.workdir.value = state.workdir;
