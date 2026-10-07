@@ -161,6 +161,21 @@
   input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(240,160,48,.15); }
   input[type="text"]::placeholder { color: #4c5a6d; }
 
+  select {
+    width: 100%;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    font-family: var(--font-mono);
+    outline: none;
+    cursor: pointer;
+    transition: .15s;
+  }
+  select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(240,160,48,.15); }
+
   .checks { display: grid; gap: 8px; margin-top: 4px; }
   .checks label {
     display: flex; align-items: center; gap: 9px;
@@ -445,10 +460,29 @@
             <input type="checkbox" id="lmWeb">
             <span><code>CS2LM_WEB</code> 启用插件管理 Web（需已安装 link-manager 功能）</span>
           </label>
+          <label>
+            <input type="checkbox" id="lmMenu">
+            <span><code>CS2LM_MENU</code> 强制显示启动菜单</span>
+          </label>
+          <label>
+            <input type="checkbox" id="lmAuto">
+            <span><code>CS2LM_AUTO</code> 强制跳过菜单，直接完整启动（面板自动重启推荐）</span>
+          </label>
         </div>
         <div class="field" style="margin-top:10px;">
           <label>Web Token <code>CS2LM_WEB_TOKEN</code><span class="muted">留空则随机生成</span></label>
           <input type="text" id="lmToken" placeholder="留空则随机生成" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>启动子命令（可选）</label>
+          <select id="startMode">
+            <option value="">默认（无参数）</option>
+            <option value="menu">menu · 强制显示菜单</option>
+            <option value="auto">auto · 跳过菜单直接启动</option>
+            <option value="web">web · 只启动插件管理 Web</option>
+            <option value="token">token · 只显示当前 token</option>
+            <option value="webstop">webstop · 停止插件管理 Web</option>
+          </select>
         </div>
       </section>
 
@@ -499,7 +533,7 @@
           <pre id="windowsStartCmd" aria-label="Windows 启动命令"></pre>
         </div>
 
-        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成，端口优先级：<code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015。</p>
+        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。</p>
       </section>
     </div>
 
@@ -546,7 +580,10 @@
     serverPort: '',
     slimDir: '',
     lmWeb: false,
-    lmToken: ''
+    lmToken: '',
+    lmMenu: false,
+    lmAuto: false,
+    startMode: ''
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -568,7 +605,10 @@
     serverPort: $('serverPort'),
     slimDir: $('slimDir'),
     lmWeb: $('lmWeb'),
-    lmToken: $('lmToken')
+    lmToken: $('lmToken'),
+    lmMenu: $('lmMenu'),
+    lmAuto: $('lmAuto'),
+    startMode: $('startMode')
   };
 
   /* ---------- 状态读写 ---------- */
@@ -593,6 +633,9 @@
         state.slimDir = typeof parsed.slimDir === 'string' ? parsed.slimDir : '';
         state.lmWeb = !!parsed.lmWeb;
         state.lmToken = typeof parsed.lmToken === 'string' ? parsed.lmToken : '';
+        state.lmMenu = !!parsed.lmMenu;
+        state.lmAuto = !!parsed.lmAuto;
+        state.startMode = typeof parsed.startMode === 'string' ? parsed.startMode : '';
       }
     } catch (e) { /* ignore bad hash */ }
   }
@@ -697,6 +740,8 @@
     if (els.lmWeb.checked) vars.push({ name: 'CS2LM_WEB', value: '1' });
     var token = els.lmToken.value.trim();
     if (token) vars.push({ name: 'CS2LM_WEB_TOKEN', value: token });
+    if (els.lmMenu.checked) vars.push({ name: 'CS2LM_MENU', value: '1' });
+    if (els.lmAuto.checked) vars.push({ name: 'CS2LM_AUTO', value: '1' });
     return vars;
   }
 
@@ -707,18 +752,24 @@
       prefix = vars.map(function (e) { return e.name + '=' + e.value; }).join(' ') + ' ';
     }
     var slimDir = els.slimDir.value.trim();
+    var cmd;
     if (els.panel.checked) {
       if (slimDir) prefix += 'CS2_SLIM_DIR=' + slimDir + ' ';
-      return prefix + 'bash ~/start.sh';
+      cmd = 'bash ~/start.sh';
+    } else {
+      var path = (slimDir || '~/cs2-slim-build/slim').replace(/\/+$/, '') + '/start_server.sh';
+      cmd = 'bash ' + path;
     }
-    var path = (slimDir || '~/cs2-slim-build/slim').replace(/\/+$/, '') + '/start_server.sh';
-    return prefix + 'bash ' + path;
+    var sub = els.startMode.value;
+    if (sub) cmd += ' ' + sub;
+    return prefix + cmd;
   }
 
   function buildWindowsStart() {
     var vars = collectStartEnvs();
     var lines = vars.map(function (e) { return 'set ' + e.name + '=' + e.value; });
-    lines.push('start_server.bat');
+    var sub = els.startMode.value;
+    lines.push('start_server.bat' + (sub ? ' ' + sub : ''));
     return lines.join('\n');
   }
 
@@ -778,6 +829,8 @@
       cb.checked = state.features.indexOf(cb.dataset.feature) !== -1;
     });
     els.lmWeb.checked = state.lmWeb;
+    els.lmMenu.checked = state.lmMenu;
+    els.lmAuto.checked = state.lmAuto;
 
     var envsLinux = collectEnvs('linux');
     var envsWindows = collectEnvs('windows');
@@ -903,6 +956,15 @@
       state.lmWeb = els.lmWeb.checked;
       render();
     });
+    els.lmMenu.addEventListener('change', function () {
+      state.lmMenu = els.lmMenu.checked;
+      render();
+    });
+    els.lmAuto.addEventListener('change', function () {
+      state.lmAuto = els.lmAuto.checked;
+      render();
+    });
+    els.startMode.addEventListener('change', render);
   }
 
   function syncStateToDom() {
@@ -927,6 +989,9 @@
     els.slimDir.value = state.slimDir;
     els.lmWeb.checked = state.lmWeb;
     els.lmToken.value = state.lmToken;
+    els.lmMenu.checked = state.lmMenu;
+    els.lmAuto.checked = state.lmAuto;
+    els.startMode.value = state.startMode;
   }
 
   /* ---------- 复制 ---------- */
@@ -991,7 +1056,10 @@
       serverPort: '',
       slimDir: '',
       lmWeb: false,
-      lmToken: ''
+      lmToken: '',
+      lmMenu: false,
+      lmAuto: false,
+      startMode: ''
     };
     syncStateToDom();
     render();
