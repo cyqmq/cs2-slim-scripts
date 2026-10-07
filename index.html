@@ -274,6 +274,18 @@
   }
   .note code { font-family: var(--font-mono); color: #9fb0c9; }
 
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    margin: 20px 0 12px;
+  }
+  .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
   footer {
     text-align: center;
     color: var(--muted);
@@ -383,6 +395,10 @@
             <input type="checkbox" class="feat-cb" data-feature="css-win">
             <span><b>css-win</b> <code class="plat windows">Windows</code> &nbsp;CounterStrikeSharp C# 插件框架（自动带上 metamod-win）</span>
           </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="link-manager">
+            <span><b>link-manager</b> <code class="plat both">通用</code> &nbsp;插件管理 CLI（cs2lm），跨平台，需 Python 3.11+</span>
+          </label>
         </div>
         <input type="text" id="customFeatures" placeholder="自定义功能，逗号分隔；已知项按平台路由，未知项同时应用到两个平台" autocomplete="off">
       </section>
@@ -407,6 +423,32 @@
           <label><input type="checkbox" id="pkg"> <span><code>CS2_PACKAGE</code> 完成后打包（仅 source 模式）</span></label>
           <label><input type="checkbox" id="dry"> <span><code>CS2_DRY_RUN</code> 只生成配置不下载（预览）</span></label>
           <label><input type="checkbox" id="panel"> <span><code>CS2_PANEL</code> 面板模式：生成 / 覆盖 $HOME/start.sh</span></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">运行 / 启动变量 <span class="muted">可选 · 用于启动服务端</span></div>
+        <div class="field">
+          <label>服务端口 <code>CS2_PORT</code><span class="muted">默认 27015</span></label>
+          <input type="text" id="port" placeholder="27015" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>面板注入端口 <code>SERVER_PORT</code><span class="muted">优先级最高，会顶掉 CS2_PORT</span></label>
+          <input type="text" id="serverPort" placeholder="留空则不用" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>精简树路径 <code>CS2_SLIM_DIR</code><span class="muted">默认 ~/cs2-slim-build/slim</span></label>
+          <input type="text" id="slimDir" placeholder="~/cs2-slim-build/slim" autocomplete="off">
+        </div>
+        <div class="checks">
+          <label>
+            <input type="checkbox" id="lmWeb">
+            <span><code>CS2LM_WEB</code> 启用插件管理 Web（需已安装 link-manager 功能）</span>
+          </label>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>Web Token <code>CS2LM_WEB_TOKEN</code><span class="muted">留空则随机生成</span></label>
+          <input type="text" id="lmToken" placeholder="留空则随机生成" autocomplete="off">
         </div>
       </section>
 
@@ -439,7 +481,25 @@
           <pre id="windowsCmd" aria-label="Windows 安装命令"></pre>
         </div>
 
-        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> 会自动带上 <code>metamod-win</code>。</p>
+        <div class="divider">🚀 启动服务端（可选）</div>
+
+        <div class="cmd">
+          <div class="cmd-head">
+            <span><span class="os-icon">🐧</span> Linux 启动命令</span>
+            <button class="copy-btn" id="copyLinuxStart" type="button">复制</button>
+          </div>
+          <pre id="linuxStartCmd" aria-label="Linux 启动命令"></pre>
+        </div>
+
+        <div class="cmd">
+          <div class="cmd-head">
+            <span><span class="os-icon">🪟</span> Windows 启动命令</span>
+            <button class="copy-btn" id="copyWindowsStart" type="button">复制</button>
+          </div>
+          <pre id="windowsStartCmd" aria-label="Windows 启动命令"></pre>
+        </div>
+
+        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成，端口优先级：<code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015。</p>
       </section>
     </div>
 
@@ -466,9 +526,10 @@
     metamod:      { platform: 'linux',   depends: [] },
     'metamod-win':{ platform: 'windows', depends: [] },
     css:          { platform: 'linux',   depends: ['metamod'] },
-    'css-win':    { platform: 'windows', depends: ['metamod-win'] }
+    'css-win':    { platform: 'windows', depends: ['metamod-win'] },
+    'link-manager':{ platform: 'both',  depends: [] }
   };
-  var FEATURE_ORDER = ['bots', 'metamod', 'metamod-win', 'css', 'css-win'];
+  var FEATURE_ORDER = ['bots', 'metamod', 'metamod-win', 'css', 'css-win', 'link-manager'];
 
   var state = {
     mode: 'source',
@@ -480,13 +541,20 @@
     pkg: false,
     dryRun: false,
     panel: false,
-    proxy: ''
+    proxy: '',
+    port: '',
+    serverPort: '',
+    slimDir: '',
+    lmWeb: false,
+    lmToken: ''
   };
 
   var $ = function (id) { return document.getElementById(id); };
   var els = {
     linux: $('linuxCmd'),
     windows: $('windowsCmd'),
+    linuxStart: $('linuxStartCmd'),
+    windowsStart: $('windowsStartCmd'),
     chips: $('chips'),
     defaultsNote: $('defaultsNote'),
     workdir: $('workdir'),
@@ -495,7 +563,12 @@
     dry: $('dry'),
     panel: $('panel'),
     customMaps: $('customMaps'),
-    customFeatures: $('customFeatures')
+    customFeatures: $('customFeatures'),
+    port: $('port'),
+    serverPort: $('serverPort'),
+    slimDir: $('slimDir'),
+    lmWeb: $('lmWeb'),
+    lmToken: $('lmToken')
   };
 
   /* ---------- 状态读写 ---------- */
@@ -515,6 +588,11 @@
         state.dryRun = !!parsed.dryRun;
         state.panel = !!parsed.panel;
         state.proxy = typeof parsed.proxy === 'string' ? parsed.proxy : '';
+        state.port = typeof parsed.port === 'string' ? parsed.port : '';
+        state.serverPort = typeof parsed.serverPort === 'string' ? parsed.serverPort : '';
+        state.slimDir = typeof parsed.slimDir === 'string' ? parsed.slimDir : '';
+        state.lmWeb = !!parsed.lmWeb;
+        state.lmToken = typeof parsed.lmToken === 'string' ? parsed.lmToken : '';
       }
     } catch (e) { /* ignore bad hash */ }
   }
@@ -609,6 +687,41 @@
     return envLine + '\n' + irm;
   }
 
+  /* ---------- 启动命令生成 ---------- */
+  function collectStartEnvs() {
+    var vars = [];
+    var port = els.port.value.trim();
+    if (port && port !== '27015') vars.push({ name: 'CS2_PORT', value: port });
+    var srvPort = els.serverPort.value.trim();
+    if (srvPort) vars.push({ name: 'SERVER_PORT', value: srvPort });
+    if (els.lmWeb.checked) vars.push({ name: 'CS2LM_WEB', value: '1' });
+    var token = els.lmToken.value.trim();
+    if (token) vars.push({ name: 'CS2LM_WEB_TOKEN', value: token });
+    return vars;
+  }
+
+  function buildLinuxStart() {
+    var vars = collectStartEnvs();
+    var prefix = '';
+    if (vars.length) {
+      prefix = vars.map(function (e) { return e.name + '=' + e.value; }).join(' ') + ' ';
+    }
+    var slimDir = els.slimDir.value.trim();
+    if (els.panel.checked) {
+      if (slimDir) prefix += 'CS2_SLIM_DIR=' + slimDir + ' ';
+      return prefix + 'bash ~/start.sh';
+    }
+    var path = (slimDir || '~/cs2-slim-build/slim').replace(/\/+$/, '') + '/start_server.sh';
+    return prefix + 'bash ' + path;
+  }
+
+  function buildWindowsStart() {
+    var vars = collectStartEnvs();
+    var lines = vars.map(function (e) { return 'set ' + e.name + '=' + e.value; });
+    lines.push('start_server.bat');
+    return lines.join('\n');
+  }
+
   /* ---------- 渲染 ---------- */
   function highlightLinux(text) {
     var lines = text.split('\n');
@@ -664,6 +777,7 @@
     document.querySelectorAll('.feat-cb').forEach(function (cb) {
       cb.checked = state.features.indexOf(cb.dataset.feature) !== -1;
     });
+    els.lmWeb.checked = state.lmWeb;
 
     var envsLinux = collectEnvs('linux');
     var envsWindows = collectEnvs('windows');
@@ -695,6 +809,10 @@
     var winText = buildWindows(envsWindows);
     els.linux.innerHTML = highlightLinux(linuxText);
     els.windows.innerHTML = highlightWindows(winText);
+
+    // 启动命令（可选）
+    els.linuxStart.textContent = buildLinuxStart();
+    els.windowsStart.textContent = buildWindowsStart();
 
     saveState();
   }
@@ -771,7 +889,7 @@
   }
 
   function bindTextInputs() {
-    var inputs = [els.customMaps, els.customFeatures, els.workdir, els.proxy];
+    var inputs = [els.customMaps, els.customFeatures, els.workdir, els.proxy, els.port, els.serverPort, els.slimDir, els.lmToken];
     inputs.forEach(function (el) {
       el.addEventListener('input', render);
     });
@@ -780,6 +898,10 @@
   function bindChecks() {
     [els.pkg, els.dry, els.panel].forEach(function (cb) {
       cb.addEventListener('change', render);
+    });
+    els.lmWeb.addEventListener('change', function () {
+      state.lmWeb = els.lmWeb.checked;
+      render();
     });
   }
 
@@ -800,6 +922,11 @@
     els.pkg.checked = state.pkg;
     els.dry.checked = state.dryRun;
     els.panel.checked = state.panel;
+    els.port.value = state.port;
+    els.serverPort.value = state.serverPort;
+    els.slimDir.value = state.slimDir;
+    els.lmWeb.checked = state.lmWeb;
+    els.lmToken.value = state.lmToken;
   }
 
   /* ---------- 复制 ---------- */
@@ -840,6 +967,12 @@
   $('copyWindows').addEventListener('click', function () {
     copyText(els.windows.textContent, this);
   });
+  $('copyLinuxStart').addEventListener('click', function () {
+    copyText(els.linuxStart.textContent, this);
+  });
+  $('copyWindowsStart').addEventListener('click', function () {
+    copyText(els.windowsStart.textContent, this);
+  });
 
   /* ---------- 重置 ---------- */
   $('reset').addEventListener('click', function () {
@@ -853,7 +986,12 @@
       pkg: false,
       dryRun: false,
       panel: false,
-      proxy: ''
+      proxy: '',
+      port: '',
+      serverPort: '',
+      slimDir: '',
+      lmWeb: false,
+      lmToken: ''
     };
     syncStateToDom();
     render();
