@@ -678,6 +678,22 @@
   }
 
   /* ---------- 取值 ---------- */
+  // 展开功能依赖（如 css -> metamod，plugify -> metamod），返回传递闭包
+  function expandFeatures(features) {
+    var result = features.slice();
+    var changed = true;
+    while (changed) {
+      changed = false;
+      result.slice().forEach(function (id) {
+        var f = FEATURES[id];
+        if (f) f.depends.forEach(function (d) {
+          if (result.indexOf(d) === -1) { result.push(d); changed = true; }
+        });
+      });
+    }
+    return result;
+  }
+
   function getMaps() {
     var custom = els.customMaps.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
     return unique(state.maps.concat(custom));
@@ -690,13 +706,8 @@
       if (result.indexOf(tok) === -1) result.push(tok);
     });
 
-    // 自动补依赖（css -> metamod，css-win -> metamod-win）
-    result.slice().forEach(function (id) {
-      var f = FEATURES[id];
-      if (f) f.depends.forEach(function (d) {
-        if (result.indexOf(d) === -1) result.push(d);
-      });
-    });
+    // 自动补依赖（css -> metamod，plugify -> metamod，…）
+    result = expandFeatures(result);
 
     // 按平台过滤：仅保留通用 + 当前平台的功能
     result = result.filter(function (id) {
@@ -855,8 +866,9 @@
     document.querySelectorAll('.map-cb').forEach(function (cb) {
       cb.checked = state.maps.indexOf(cb.dataset.map) !== -1;
     });
+    var expandedFeatures = expandFeatures(state.features);
     document.querySelectorAll('.feat-cb').forEach(function (cb) {
-      cb.checked = state.features.indexOf(cb.dataset.feature) !== -1;
+      cb.checked = expandedFeatures.indexOf(cb.dataset.feature) !== -1;
     });
     els.lmWeb.checked = state.lmWeb;
     els.lmMenu.checked = state.lmMenu;
@@ -1004,8 +1016,9 @@
     document.querySelectorAll('.map-cb').forEach(function (cb) {
       cb.checked = state.maps.indexOf(cb.dataset.map) !== -1;
     });
+    var expandedFeatures = expandFeatures(state.features);
     document.querySelectorAll('.feat-cb').forEach(function (cb) {
-      cb.checked = state.features.indexOf(cb.dataset.feature) !== -1;
+      cb.checked = expandedFeatures.indexOf(cb.dataset.feature) !== -1;
     });
     els.customMaps.value = state.customMaps;
     els.customFeatures.value = state.customFeatures;
