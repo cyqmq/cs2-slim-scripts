@@ -508,6 +508,18 @@
             <option value="webstop">webstop · 停止插件管理 Web</option>
           </select>
         </div>
+        <div class="field">
+          <label>网络模式 <code>CS2_NET_MODE</code><span class="muted">默认 2 · 局域网 + 绑定所有网卡</span></label>
+          <select id="netMode">
+            <option value="2">2 · 局域网 + 绑定所有网卡（默认，= 现状）</option>
+            <option value="1">1 · 仅局域网（+sv_lan 1，不绑 -ip）</option>
+            <option value="3">3 · 公开（+sv_lan 0 + GSLT，有封禁风险）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>GSLT 令牌 <code>CS2_GSLT</code><span class="muted">仅网络模式 3 需要</span></label>
+          <input type="text" id="gslt" placeholder="仅网络模式 3 用，留空则回退模式 2" autocomplete="off">
+        </div>
       </section>
 
       <div class="card-foot">
@@ -557,7 +569,7 @@
           <pre id="windowsStartCmd" aria-label="Windows 启动命令"></pre>
         </div>
 
-        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> / <code>plugify</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> / <code>plugify-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。</p>
+        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> / <code>plugify</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> / <code>plugify-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2_NET_MODE</code> 切换网络模式（1 仅局域网 / 2 局域网 + 绑定 <code>0.0.0.0</code>（默认）/ 3 公开，需 <code>CS2_GSLT</code>，有 GSLT 封禁风险）；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。</p>
       </section>
     </div>
 
@@ -613,7 +625,9 @@
     lmToken: '',
     lmMenu: false,
     lmAuto: false,
-    startMode: ''
+    startMode: '',
+    netMode: '2',
+    gslt: ''
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -638,7 +652,9 @@
     lmToken: $('lmToken'),
     lmMenu: $('lmMenu'),
     lmAuto: $('lmAuto'),
-    startMode: $('startMode')
+    startMode: $('startMode'),
+    netMode: $('netMode'),
+    gslt: $('gslt')
   };
 
   /* ---------- 状态读写 ---------- */
@@ -666,6 +682,8 @@
         state.lmMenu = !!parsed.lmMenu;
         state.lmAuto = !!parsed.lmAuto;
         state.startMode = typeof parsed.startMode === 'string' ? parsed.startMode : '';
+        state.netMode = (parsed.netMode === '1' || parsed.netMode === '2' || parsed.netMode === '3') ? parsed.netMode : '2';
+        state.gslt = typeof parsed.gslt === 'string' ? parsed.gslt : '';
       }
     } catch (e) { /* ignore bad hash */ }
   }
@@ -783,6 +801,12 @@
     if (token) vars.push({ name: 'CS2LM_WEB_TOKEN', value: token });
     if (els.lmMenu.checked) vars.push({ name: 'CS2LM_MENU', value: '1' });
     if (els.lmAuto.checked) vars.push({ name: 'CS2LM_AUTO', value: '1' });
+    var netMode = els.netMode.value || '2';
+    if (netMode !== '2') vars.push({ name: 'CS2_NET_MODE', value: netMode });
+    if (netMode === '3') {
+      var gslt = els.gslt.value.trim();
+      if (gslt) vars.push({ name: 'CS2_GSLT', value: gslt });
+    }
     return vars;
   }
 
@@ -873,6 +897,7 @@
     els.lmWeb.checked = state.lmWeb;
     els.lmMenu.checked = state.lmMenu;
     els.lmAuto.checked = state.lmAuto;
+    els.gslt.disabled = (state.netMode !== '3');
 
     var envsLinux = collectEnvs('linux');
     var envsWindows = collectEnvs('windows');
@@ -984,7 +1009,7 @@
   }
 
   function bindTextInputs() {
-    var inputs = [els.customMaps, els.customFeatures, els.workdir, els.proxy, els.port, els.serverPort, els.slimDir, els.lmToken];
+    var inputs = [els.customMaps, els.customFeatures, els.workdir, els.proxy, els.port, els.serverPort, els.slimDir, els.lmToken, els.gslt];
     inputs.forEach(function (el) {
       el.addEventListener('input', render);
     });
@@ -1007,6 +1032,10 @@
       render();
     });
     els.startMode.addEventListener('change', render);
+    els.netMode.addEventListener('change', function () {
+      state.netMode = els.netMode.value;
+      render();
+    });
   }
 
   function syncStateToDom() {
@@ -1035,6 +1064,8 @@
     els.lmMenu.checked = state.lmMenu;
     els.lmAuto.checked = state.lmAuto;
     els.startMode.value = state.startMode;
+    els.netMode.value = state.netMode;
+    els.gslt.value = state.gslt;
   }
 
   /* ---------- 复制 ---------- */
@@ -1102,7 +1133,9 @@
       lmToken: '',
       lmMenu: false,
       lmAuto: false,
-      startMode: ''
+      startMode: '',
+      netMode: '2',
+      gslt: ''
     };
     syncStateToDom();
     render();
