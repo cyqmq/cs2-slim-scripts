@@ -411,6 +411,30 @@
             <span><b>css-win</b> <code class="plat windows">Windows</code> &nbsp;CounterStrikeSharp C# 插件框架（自动带上 metamod-win）</span>
           </label>
           <label>
+            <input type="checkbox" class="feat-cb" data-feature="swiftly">
+            <span><b>swiftly</b> <code class="plat linux">Linux</code> &nbsp;SwiftlyS2 插件框架（独立，带 .NET 运行时）</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="swiftly-win">
+            <span><b>swiftly-win</b> <code class="plat windows">Windows</code> &nbsp;SwiftlyS2 插件框架（独立，带 .NET 运行时）</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="plugify">
+            <span><b>plugify</b> <code class="plat linux">Linux</code> &nbsp;Plugify 插件框架（自动带上 metamod）</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="plugify-win">
+            <span><b>plugify-win</b> <code class="plat windows">Windows</code> &nbsp;Plugify 插件框架（自动带上 metamod-win）</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="modsharp">
+            <span><b>modsharp</b> <code class="plat linux">Linux</code> &nbsp;ModSharp C# 插件框架（独立，需 .NET 10）</span>
+          </label>
+          <label>
+            <input type="checkbox" class="feat-cb" data-feature="modsharp-win">
+            <span><b>modsharp-win</b> <code class="plat windows">Windows</code> &nbsp;ModSharp C# 插件框架（独立，需 .NET 10）</span>
+          </label>
+          <label>
             <input type="checkbox" class="feat-cb" data-feature="link-manager">
             <span><b>link-manager</b> <code class="plat both">通用</code> &nbsp;插件管理 CLI（cs2lm），跨平台，需 Python 3.11+</span>
           </label>
@@ -533,7 +557,7 @@
           <pre id="windowsStartCmd" aria-label="Windows 启动命令"></pre>
         </div>
 
-        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。</p>
+        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> / <code>plugify</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> / <code>plugify-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。</p>
       </section>
     </div>
 
@@ -561,9 +585,15 @@
     'metamod-win':{ platform: 'windows', depends: [] },
     css:          { platform: 'linux',   depends: ['metamod'] },
     'css-win':    { platform: 'windows', depends: ['metamod-win'] },
+    swiftly:      { platform: 'linux',   depends: [] },
+    'swiftly-win':{ platform: 'windows', depends: [] },
+    plugify:      { platform: 'linux',   depends: ['metamod'] },
+    'plugify-win':{ platform: 'windows', depends: ['metamod-win'] },
+    modsharp:     { platform: 'linux',   depends: [] },
+    'modsharp-win':{ platform: 'windows', depends: [] },
     'link-manager':{ platform: 'both',  depends: [] }
   };
-  var FEATURE_ORDER = ['bots', 'metamod', 'metamod-win', 'css', 'css-win', 'link-manager'];
+  var FEATURE_ORDER = ['bots', 'metamod', 'metamod-win', 'css', 'css-win', 'swiftly', 'swiftly-win', 'plugify', 'plugify-win', 'modsharp', 'modsharp-win', 'link-manager'];
 
   var state = {
     mode: 'source',
