@@ -461,7 +461,7 @@
         <div class="checks">
           <label><input type="checkbox" id="pkg"> <span><code>CS2_PACKAGE</code> 完成后打包（仅 source 模式）</span></label>
           <label><input type="checkbox" id="dry"> <span><code>CS2_DRY_RUN</code> 只生成配置不下载（预览）</span></label>
-          <label><input type="checkbox" id="panel"> <span><code>CS2_PANEL</code> 面板模式：生成 / 覆盖 $HOME/start.sh</span></label>
+          <label><input type="checkbox" id="panel"> <span><code>CS2_PANEL</code> 面板模式：生成 / 覆盖 <code>$HOME/start.sh</code>（顶部含「运行 / 启动配置区」）</span></label>
         </div>
       </section>
 
@@ -573,7 +573,7 @@
           <pre id="windowsStartCmd" aria-label="Windows 启动命令"></pre>
         </div>
 
-        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> / <code>plugify</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> / <code>plugify-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2_NET_MODE</code> 切换网络模式（1 仅局域网 / 2 互联网、外网直连（默认）/ 3 公开列表，需 <code>CS2_GSLT</code>，有 GSLT 封禁风险）；<code>CS2_PASSWORD</code> 设置服务器进入密码；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。</p>
+        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> / <code>plugify</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> / <code>plugify-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2_NET_MODE</code> 切换网络模式（1 仅局域网 / 2 互联网、外网直连（默认）/ 3 公开列表，需 <code>CS2_GSLT</code>，有 GSLT 封禁风险）；<code>CS2_PASSWORD</code> 设置服务器进入密码；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。面板模式生成的 <code>$HOME/start.sh</code> 顶部有「★ 运行 / 启动配置区」，无法在面板配置环境变量时可直接编辑该区域生效（环境变量仍优先；重跑一键脚本会覆盖 <code>start.sh</code>，修改前请先备份）。</p>
       </section>
     </div>
 
