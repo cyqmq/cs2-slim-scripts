@@ -573,7 +573,17 @@
           <pre id="windowsStartCmd" aria-label="Windows 启动命令"></pre>
         </div>
 
-        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> / <code>plugify</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> / <code>plugify-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2_NET_MODE</code> 切换网络模式（1 仅局域网 / 2 互联网、外网直连（默认）/ 3 公开列表，需 <code>CS2_GSLT</code>，有 GSLT 封禁风险）；<code>CS2_PASSWORD</code> 设置服务器进入密码；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。面板模式生成的 <code>$HOME/start.sh</code> 顶部有「★ 运行 / 启动配置区」，无法在面板配置环境变量时可直接编辑该区域生效（环境变量仍优先；重跑一键脚本会覆盖 <code>start.sh</code>，修改前请先备份）。</p>
+        <div class="divider">🧩 面板配置区（可选 · 粘贴到 start.sh）</div>
+
+        <div class="cmd">
+          <div class="cmd-head">
+            <span><span class="os-icon">🧩</span> 整段替换 start.sh 顶部的「★ 运行 / 启动配置区」</span>
+            <button class="copy-btn" id="copyPanelCfg" type="button">复制</button>
+          </div>
+          <pre id="panelCfg" aria-label="面板配置区"></pre>
+        </div>
+
+        <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> / <code>plugify</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> / <code>plugify-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2_NET_MODE</code> 切换网络模式（1 仅局域网 / 2 互联网、外网直连（默认）/ 3 公开列表，需 <code>CS2_GSLT</code>，有 GSLT 封禁风险）；<code>CS2_PASSWORD</code> 设置服务器进入密码；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。面板模式生成的 <code>$HOME/start.sh</code> 顶部有「★ 运行 / 启动配置区」，无法在面板配置环境变量时可直接编辑该区域生效（环境变量仍优先；重跑一键脚本会覆盖 <code>start.sh</code>，修改前请先备份）；下方的「面板配置区」会按当前选择生成整段可替换内容。</p>
       </section>
     </div>
 
@@ -641,6 +651,7 @@
     windows: $('windowsCmd'),
     linuxStart: $('linuxStartCmd'),
     windowsStart: $('windowsStartCmd'),
+    panelCfg: $('panelCfg'),
     chips: $('chips'),
     defaultsNote: $('defaultsNote'),
     workdir: $('workdir'),
@@ -847,6 +858,51 @@
     return lines.join('\n');
   }
 
+  // 面板配置区：面板无法设置环境变量时，整段替换 start.sh 顶部的「★ 运行 / 启动配置区」。
+  // 采用 ${VAR:-默认值} 形式，环境变量仍优先于配置区默认值。
+  function buildPanelCfg() {
+    var port   = els.port.value.trim() || '27015';
+    var netMode = els.netMode.value || '2';
+    var pw     = els.password.value.trim();
+    var web    = els.lmWeb.checked ? '1' : '0';
+    var token  = els.lmToken.value.trim();
+    var gslt   = els.gslt.value.trim();
+    var slimDir = els.slimDir.value.trim() || '$HOME/cs2-slim-build/slim';
+
+    var L = [];
+    L.push('# ============================================================');
+    L.push('# ★ 运行 / 启动配置区 —— 整段替换 start.sh 顶部同名区域');
+    L.push('#   面板无法设置环境变量时，改这里的默认值即可生效（环境变量仍优先）。');
+    L.push('#   注意：重新运行一键脚本会覆盖 start.sh，修改前请先备份。');
+    L.push('# ============================================================');
+    L.push('');
+    L.push('# 服务端端口（默认 27015；面板注入的 SERVER_PORT 优先级更高）');
+    L.push('export CS2_PORT="${CS2_PORT:-' + port + '}"');
+    L.push('');
+    L.push('# 网络模式：1=局域网 | 2=互联网/外网直连(默认) | 3=公开(需 GSLT)');
+    L.push('export CS2_NET_MODE="${CS2_NET_MODE:-' + netMode + '}"');
+    L.push('');
+    L.push('# 服务器进入密码（默认空=无密码）');
+    L.push('export CS2_PASSWORD="${CS2_PASSWORD:-' + pw + '}"');
+    L.push('');
+    L.push('# 插件管理 Web：1=完整启动时同时启动（需已安装 link-manager）');
+    L.push('export CS2LM_WEB="${CS2LM_WEB:-' + web + '}"');
+    L.push('');
+    L.push('# 插件管理 Web 固定 token（默认空=随机生成，并写入 web_token.txt）');
+    L.push('export CS2LM_WEB_TOKEN="${CS2LM_WEB_TOKEN:-' + token + '}"');
+    L.push('');
+    L.push('# 档 3 公开模式的 GSLT（优先 CS2_GSLT > GSLT > CS2LM_GSLT；无则回退档 2）');
+    L.push('export CS2_GSLT="${CS2_GSLT:-' + gslt + '}"');
+    L.push('');
+    L.push('# 可选：强制显示 / 跳过菜单（默认自动）');
+    L.push(els.lmMenu.checked ? 'export CS2LM_MENU="1"' : '# export CS2LM_MENU=""');
+    L.push(els.lmAuto.checked ? 'export CS2LM_AUTO="1"' : '# export CS2LM_AUTO=""');
+    L.push('');
+    L.push('# 精简树路径（默认 $HOME/cs2-slim-build/slim）');
+    L.push('SLIM_DIR="${CS2_SLIM_DIR:-' + slimDir + '}"');
+    return L.join('\n');
+  }
+
   /* ---------- 渲染 ---------- */
   function highlightLinux(text) {
     var lines = text.split('\n');
@@ -942,6 +998,7 @@
     // 启动命令（可选）
     els.linuxStart.textContent = buildLinuxStart();
     els.windowsStart.textContent = buildWindowsStart();
+    els.panelCfg.textContent = buildPanelCfg();
 
     saveState();
   }
@@ -1121,6 +1178,9 @@
   });
   $('copyWindowsStart').addEventListener('click', function () {
     copyText(els.windowsStart.textContent, this);
+  });
+  $('copyPanelCfg').addEventListener('click', function () {
+    copyText(els.panelCfg.textContent, this);
   });
 
   /* ---------- 重置 ---------- */

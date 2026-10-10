@@ -10,7 +10,7 @@
 - 内置可选地图（de_mirage / de_inferno / de_ancient / …）与可选功能（bots / metamod / metamod-win / css / css-win / swiftly / swiftly-win / plugify / plugify-win / modsharp / modsharp-win / link-manager）
 - 功能按平台自动路由：`metamod`、`css`、`swiftly`、`plugify`、`modsharp` 只进入 Linux 命令，`metamod-win`、`css-win`、`swiftly-win`、`plugify-win`、`modsharp-win` 只进入 Windows 命令；选择 `css` / `plugify` 会自动带上对应平台的 `metamod` / `metamod-win` 并自动勾选依赖复选框（`css-win` / `plugify-win` 同理），取消父功能后依赖随之自动取消；依赖已被其它已选功能占用时保持勾选
 - 支持运行 / 启动变量（`CS2_PORT` / `SERVER_PORT` / `CS2_NET_MODE` / `CS2_GSLT` / `CS2_PASSWORD` / `CS2_SLIM_DIR` / `CS2LM_WEB` / `CS2LM_WEB_TOKEN` / `CS2LM_MENU` / `CS2LM_AUTO`），自动生成 Linux / Windows 启动服务端命令，并支持 `menu` / `auto` / `web` / `token` / `webstop` 子命令；`CS2_NET_MODE` 网络模式：`1` 仅局域网 / `2` 互联网、外网直连（默认，不进公网列表）/ `3` 公开列表（需 `CS2_GSLT`，无 GSLT 时回退模式 2，有 GSLT 封禁风险）；`CS2_PASSWORD` 设置服务器进入密码（默认无密码）
-- 面板模式（`CS2_PANEL=1`）生成的 `$HOME/start.sh` 顶部内嵌「★ 运行 / 启动配置区」，无法在面板配置环境变量时可直接编辑该区域（环境变量仍优先；重跑一键脚本会覆盖 `start.sh`，修改前请先备份）
+- 面板模式（`CS2_PANEL=1`）生成的 `$HOME/start.sh` 顶部内嵌「★ 运行 / 启动配置区」，无法在面板配置环境变量时可直接编辑该区域（环境变量仍优先；重跑一键脚本会覆盖 `start.sh`，修改前请先备份）；页面另提供「面板配置区」输出块，按当前选择生成整段可替换的 `export ...` 内容
 - 实时生成 Linux / Windows 一键安装命令，支持一键复制
 - 配置自动保存在 URL hash 中，可分享链接给他人直接使用
 - 深色终端风格 UI，桌面 / 移动端自适应
