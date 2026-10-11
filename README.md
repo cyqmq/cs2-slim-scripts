@@ -12,8 +12,11 @@
 - 支持运行 / 启动变量（`CS2_PORT` / `SERVER_PORT` / `CS2_NET_MODE` / `CS2_GSLT` / `CS2_PASSWORD` / `CS2_SLIM_DIR` / `CS2LM_WEB` / `CS2LM_WEB_TOKEN` / `CS2LM_MENU` / `CS2LM_AUTO`），自动生成 Linux / Windows 启动服务端命令，并支持 `menu` / `auto` / `web` / `token` / `webstop` 子命令；`CS2_NET_MODE` 网络模式：`1` 仅局域网 / `2` 互联网、外网直连（默认，不进公网列表）/ `3` 公开列表（需 `CS2_GSLT`，无 GSLT 时回退模式 2，有 GSLT 封禁风险）；`CS2_PASSWORD` 设置服务器进入密码（默认无密码）
 - 面板模式（`CS2_PANEL=1`）生成的 `$HOME/start.sh` 顶部内嵌「★ 运行 / 启动配置区」，无法在面板配置环境变量时可直接编辑该区域（环境变量仍优先；重跑一键脚本会覆盖 `start.sh`，修改前请先备份）；页面另提供「面板配置区」输出块，按当前选择生成整段可替换的 `export ...` 内容
 - 实时生成 Linux / Windows 一键安装命令，支持一键复制
+- 自定义地图 / 功能输入实时校验：非法字符（空格、中文、特殊符号等）标红提示，未知功能提示「未知组件」（上游可能跳过），并做 HTML 转义防注入
 - 配置自动保存在 URL hash 中，可分享链接给他人直接使用
 - 深色终端风格 UI，桌面 / 移动端自适应
+
+> ⚠️ 安全提示：生成的一键命令会用 `curl | bash`（Windows 侧 `irm | iex`）直接执行 `raw.githubusercontent.com` 上的脚本，执行前请核对域名与仓库 `cyqmq/cs2-slim-replica`；`CS2_GH_PROXY` 只填写可信代理。
 
 ## 开发
 

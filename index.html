@@ -289,6 +289,31 @@
   }
   .note code { font-family: var(--font-mono); color: #9fb0c9; }
 
+  .note.warn-note {
+    border-style: solid;
+    border-color: rgba(248, 81, 73, 0.4);
+    background: rgba(248, 81, 73, 0.06);
+    color: #e8b6b2;
+  }
+  .note.warn-note code { color: #ffd7d3; }
+
+  .hint {
+    font-size: 12px;
+    margin: 7px 2px 0;
+    line-height: 1.6;
+    display: none;
+  }
+  .hint.show { display: block; }
+  .hint code {
+    font-family: var(--font-mono);
+    color: #9fb0c9;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .hint .err { color: #f85149; }
+  .hint .info { color: var(--muted); }
+
   .divider {
     display: flex;
     align-items: center;
@@ -385,6 +410,7 @@
           <label><input type="checkbox" class="map-cb" data-map="de_vertigo"> de_vertigo</label>
         </div>
         <input type="text" id="customMaps" placeholder="自定义地图，逗号分隔，如 de_mirage,de_inferno" autocomplete="off">
+        <div class="hint" id="customMapsHint"></div>
       </section>
 
       <section class="card">
@@ -440,6 +466,7 @@
           </label>
         </div>
         <input type="text" id="customFeatures" placeholder="自定义功能，逗号分隔；已知项按平台路由，未知项同时应用到两个平台" autocomplete="off">
+        <div class="hint" id="customFeaturesHint"></div>
       </section>
 
       <section class="card">
@@ -584,6 +611,8 @@
         </div>
 
         <p class="note">💡 Linux 管道右侧的 <code>bash</code> 收不到 <code>VAR=值</code> 前缀里的变量，因此生成命令会先用 <code>export</code> 设置环境变量。Windows 侧则使用 <code>$env:</code> 设置。功能按平台路由：选择 <code>css</code> / <code>plugify</code> 会自动带上 <code>metamod</code>，选择 <code>css-win</code> / <code>plugify-win</code> 会自动带上 <code>metamod-win</code>。「启动命令」使用右侧「运行 / 启动变量」生成：端口优先级 <code>SERVER_PORT</code> &gt; <code>CS2_PORT</code> &gt; 27015；<code>CS2_NET_MODE</code> 切换网络模式（1 仅局域网 / 2 互联网、外网直连（默认）/ 3 公开列表，需 <code>CS2_GSLT</code>，有 GSLT 封禁风险）；<code>CS2_PASSWORD</code> 设置服务器进入密码；<code>CS2LM_MENU</code> 强制显示菜单，<code>CS2LM_AUTO</code> 强制跳过菜单。面板模式生成的 <code>$HOME/start.sh</code> 顶部有「★ 运行 / 启动配置区」，无法在面板配置环境变量时可直接编辑该区域生效（环境变量仍优先；重跑一键脚本会覆盖 <code>start.sh</code>，修改前请先备份）；下方的「面板配置区」会按当前选择生成整段可替换内容。</p>
+
+        <p class="note warn-note">⚠️ 安全提示：生成的一键命令会用 <code>curl | bash</code>（Windows 侧 <code>irm | iex</code>）直接执行 <code>raw.githubusercontent.com</code> 上的脚本，请先核对域名与仓库 <code>cyqmq/cs2-slim-replica</code> 再执行；<code>CS2_GH_PROXY</code> 只填写可信代理，避免经由不可信节点下载并执行脚本。</p>
       </section>
     </div>
 
@@ -661,6 +690,8 @@
     panel: $('panel'),
     customMaps: $('customMaps'),
     customFeatures: $('customFeatures'),
+    customMapsHint: $('customMapsHint'),
+    customFeaturesHint: $('customFeaturesHint'),
     port: $('port'),
     serverPort: $('serverPort'),
     slimDir: $('slimDir'),
@@ -763,6 +794,43 @@
     var seen = {}, out = [];
     arr.forEach(function (x) { if (!seen[x]) { seen[x] = true; out.push(x); } });
     return out;
+  }
+
+  /* ---------- 自定义输入校验 ---------- */
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  var FEATURE_TOKEN_RE = /^[A-Za-z0-9_-]+$/;
+  var MAP_TOKEN_RE = /^[A-Za-z0-9_.-]+$/;
+
+  function updateCustomHints() {
+    // 自定义功能：标记非法字符与未知组件
+    var feats = els.customFeatures.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    var badFeats = feats.filter(function (t) { return !FEATURE_TOKEN_RE.test(t); });
+    var unknownFeats = feats.filter(function (t) {
+      return FEATURE_TOKEN_RE.test(t) && !Object.prototype.hasOwnProperty.call(FEATURES, t);
+    });
+    var fParts = [];
+    if (badFeats.length) {
+      fParts.push('<span class="err">⚠ 含非法字符（仅允许字母 / 数字 / - / _）：</span><code>' + escapeHtml(unique(badFeats).join(', ')) + '</code>');
+    }
+    if (unknownFeats.length) {
+      fParts.push('<span class="info">ℹ 未知组件：</span><code>' + escapeHtml(unique(unknownFeats).join(', ')) + '</code> <span class="info">将同时应用到两个平台，上游可能提示「未知组件」并跳过，请确认名称是否正确。</span>');
+    }
+    els.customFeaturesHint.innerHTML = fParts.join('<br>');
+    if (fParts.length) els.customFeaturesHint.classList.add('show');
+    else els.customFeaturesHint.classList.remove('show');
+
+    // 自定义地图：仅校验非法字符（自定义 / 创意工坊地图无法预先枚举）
+    var maps = els.customMaps.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    var badMaps = maps.filter(function (t) { return !MAP_TOKEN_RE.test(t); });
+    if (badMaps.length) {
+      els.customMapsHint.innerHTML = '<span class="err">⚠ 含非法字符（仅允许字母 / 数字 / _ / - / .）：</span><code>' + escapeHtml(unique(badMaps).join(', ')) + '</code>';
+      els.customMapsHint.classList.add('show');
+    } else {
+      els.customMapsHint.innerHTML = '';
+      els.customMapsHint.classList.remove('show');
+    }
   }
 
   /* ---------- 环境变量收集 ---------- */
@@ -994,6 +1062,9 @@
     var winText = buildWindows(envsWindows);
     els.linux.innerHTML = highlightLinux(linuxText);
     els.windows.innerHTML = highlightWindows(winText);
+
+    // 自定义输入校验提示
+    updateCustomHints();
 
     // 启动命令（可选）
     els.linuxStart.textContent = buildLinuxStart();
