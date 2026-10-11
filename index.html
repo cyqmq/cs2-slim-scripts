@@ -626,6 +626,7 @@
 
 <div class="toast" id="toast">已复制到剪贴板 ✓</div>
 
+<script src="data.js"></script>
 <script>
 (function () {
   'use strict';
@@ -633,22 +634,13 @@
   var SCRIPT_SH  = 'https://raw.githubusercontent.com/cyqmq/cs2-slim-replica/main/scripts/get-cs2slim.sh';
   var SCRIPT_PS1 = 'https://raw.githubusercontent.com/cyqmq/cs2-slim-replica/main/scripts/get-cs2slim.ps1';
   var DEFAULT_WORKDIR = '~/cs2-slim-build';
-  var MAPS = ['de_dust2','de_mirage','de_inferno','de_ancient','de_anubis','de_cache','de_nuke','de_overpass','de_train','de_vertigo'];
-  var FEATURES = {
-    bots:         { platform: 'both',    depends: [] },
-    metamod:      { platform: 'linux',   depends: [] },
-    'metamod-win':{ platform: 'windows', depends: [] },
-    css:          { platform: 'linux',   depends: ['metamod'] },
-    'css-win':    { platform: 'windows', depends: ['metamod-win'] },
-    swiftly:      { platform: 'linux',   depends: [] },
-    'swiftly-win':{ platform: 'windows', depends: [] },
-    plugify:      { platform: 'linux',   depends: ['metamod'] },
-    'plugify-win':{ platform: 'windows', depends: ['metamod-win'] },
-    modsharp:     { platform: 'linux',   depends: [] },
-    'modsharp-win':{ platform: 'windows', depends: [] },
-    'link-manager':{ platform: 'both',  depends: [] }
-  };
-  var FEATURE_ORDER = ['bots', 'metamod', 'metamod-win', 'css', 'css-win', 'swiftly', 'swiftly-win', 'plugify', 'plugify-win', 'modsharp', 'modsharp-win', 'link-manager'];
+
+  // 数据由 generate_data.py 从 registry/features.json + maps.json 生成（data.js），
+  // 避免生成器硬编码与注册表不同步（如新增/下架功能时）。
+  var GENERATOR_DATA = window.GENERATOR_DATA || { MAPS: [], FEATURES: {}, FEATURE_ORDER: [] };
+  var MAPS = GENERATOR_DATA.MAPS;
+  var FEATURES = GENERATOR_DATA.FEATURES;
+  var FEATURE_ORDER = GENERATOR_DATA.FEATURE_ORDER;
 
   var state = {
     mode: 'source',
